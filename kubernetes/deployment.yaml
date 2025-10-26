@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: gcr.io/future-grove-439612-s8/web-app:latest
+        image: YOUR_DOCKER_USERNAME/student-web-app:latest
         ports:
         - containerPort: 5000
         env:
