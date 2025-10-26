@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}My Results - Student Result Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900">My Academic Results</h1>
+        <p class="mt-2 text-lg text-gray-600">Welcome back, {{ current_user.username }}</p>
+    </div>
+
+    <!-- Results Table -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800">Subject-wise Marks</h2>
+        </div>
+        
+        {% if results %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Subject
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Marks Obtained
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Grade
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for result in results %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ result.subject }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 font-semibold">{{ result.marks }}/100</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if result.marks >= 80 %}bg-green-100 text-green-800
+                                    {% elif result.marks >= 60 %}bg-blue-100 text-blue-800
+                                    {% elif result.marks >= 40 %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {% if result.marks >= 80 %}A
+                                    {% elif result.marks >= 60 %}B
+                                    {% elif result.marks >= 40 %}C
+                                    {% else %}F{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if result.marks >= 40 %}
+                                    <span class="text-green-600 font-medium">Pass</span>
+                                {% else %}
+                                    <span class="text-red-600 font-medium">Fail</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Summary -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-600">
+                            Total Subjects: <span class="font-semibold">{{ results|length }}</span>
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">
+                            Average Marks: <span class="font-semibold">
+                                {{ "%.2f"|format(results|map(attribute='marks')|sum / results|length) }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No results available</h3>
+                <p class="text-gray-500">Your results haven't been uploaded yet. Please check back later.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

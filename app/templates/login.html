@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Student Result Portal{% endblock %}
+
+{% block content %}
+<div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Sign in to your account
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Access your student results or admin portal
+            </p>
+        </div>
+        <form class="mt-8 space-y-6" method="POST" action="{{ url_for('main.login') }}">
+            {{ form.hidden_tag() }}
+            <div class="rounded-md shadow-sm -space-y-px">
+                <div>
+                    {{ form.username.label(class="sr-only") }}
+                    {{ form.username(class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm", placeholder="Username") }}
+                    {% for error in form.username.errors %}
+                        <span class="text-red-500 text-xs">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                <div>
+                    {{ form.password.label(class="sr-only") }}
+                    {{ form.password(class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm", placeholder="Password") }}
+                    {% for error in form.password.errors %}
+                        <span class="text-red-500 text-xs">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    {{ form.remember(class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded") }}
+                    {{ form.remember.label(class="ml-2 block text-sm text-gray-900") }}
+                </div>
+            </div>
+
+            <div>
+                {{ form.submit(class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500") }}
+            </div>
+        </form>
+        
+        <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+            <h3 class="text-sm font-medium text-yellow-800">Demo Credentials</h3>
+            <div class="mt-2 text-sm text-yellow-700">
+                <p><strong>Admin:</strong> admin / admin123</p>
+                <p><strong>Student:</strong> student1 / student1</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
