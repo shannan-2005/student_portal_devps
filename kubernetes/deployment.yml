@@ -14,21 +14,9 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: gcr.io/YOUR_PROJECT_ID/web-app:latest
+        image: gcr.io/future-grove-439612-s8/web-app:latest
         ports:
         - containerPort: 5000
         env:
         - name: FLASK_ENV
           value: "production"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: web-app-service
-spec:
-  type: LoadBalancer
-  selector:
-    app: web-app
-  ports:
-  - port: 80
-    targetPort: 5000
