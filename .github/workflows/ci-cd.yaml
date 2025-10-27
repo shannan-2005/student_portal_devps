@@ -1,123 +1,69 @@
-name: GCP Production Deployment
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 env:
-  PROJECT_ID: "future-grove-439612-s8"
-  GKE_CLUSTER: "student-devops-cluster"
-  REGION: "us-central1"
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: godwin1605/aifa-backend
+  GKE_CLUSTER: alfavox-cluster
+  GKE_ZONE: us-central1-a
 
 jobs:
-  deploy-to-production:
+  build-and-push:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Google Cloud
-      uses: google-github-actions/setup-gcloud@v1
+    - uses: actions/checkout@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
       with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Build Docker image
+      run: |
+        docker build -t $IMAGE_NAME:$GITHUB_SHA .
+        docker build -t $IMAGE_NAME:latest .
+        
+    - name: Push Docker image
+      run: |
+        docker push $IMAGE_NAME:$GITHUB_SHA
+        docker push $IMAGE_NAME:latest
 
-    - name: Authenticate to Google Cloud
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup GCP Auth
       uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Configure Docker for GCR
-      run: gcloud auth configure-docker gcr.io --quiet
-
-    - name: Build Docker image
-      run: |
-        echo "🐳 Building Docker image..."
-        docker build -t gcr.io/$PROJECT_ID/web-app:$GITHUB_SHA .
-        docker tag gcr.io/$PROJECT_ID/web-app:$GITHUB_SHA gcr.io/$PROJECT_ID/web-app:latest
-        docker images
-        echo "✅ Docker image built successfully"
-
-    - name: Push Docker image to GCR
-      run: |
-        echo "📤 Pushing to Container Registry..."
-        docker push gcr.io/$PROJECT_ID/web-app:$GITHUB_SHA || echo "⚠️  Push failed - may need billing"
-        docker push gcr.io/$PROJECT_ID/web-app:latest || echo "⚠️  Push failed - may need billing"
-        echo "ℹ️  Image push attempted - check billing if failed"
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-
-    - name: Initialize Terraform
-      run: |
-        echo "🏗️  Initializing Terraform..."
-        cd terraform
-        terraform init
-        echo "✅ Terraform initialized"
-
-    - name: Create GKE Cluster with Terraform
-      run: |
-        echo "🚀 Creating GKE cluster..."
-        cd terraform
-        terraform plan -var="project_id=$PROJECT_ID" || echo "⚠️  Terraform plan failed - may need API enablement"
-        terraform apply -auto-approve -var="project_id=$PROJECT_ID" || echo "⚠️  Terraform apply failed - check APIs and billing"
-        echo "ℹ️  Cluster creation attempted"
-
-    - name: Try to Configure kubectl
-      run: |
-        echo "🔧 Attempting to configure Kubernetes access..."
-        gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION || echo "⚠️  kubectl config failed - cluster may not exist"
-        kubectl cluster-info || echo "⚠️  Cannot connect to cluster"
-        echo "ℹ️  Kubernetes configuration attempted"
-
-    - name: Deploy Application (if cluster exists)
-      run: |
-        echo "🎯 Attempting application deployment..."
-        kubectl apply -f kubernetes/deployment.yaml || echo "⚠️  Deployment failed - cluster may not be ready"
-        kubectl apply -f kubernetes/service.yaml || echo "⚠️  Service creation failed"
         
-        # Only wait for rollout if deployment was successful
-        kubectl rollout status deployment/web-app --timeout=180s || echo "⚠️  Rollout status check failed"
-        echo "ℹ️  Deployment process completed"
-
-    - name: Final Status Report
+    - name: Setup Gcloud
+      uses: google-github-actions/setup-gcloud@v1
+        
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v1
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_ZONE }}
+        
+    - name: Deploy to GKE
       run: |
-        echo "📊 === DEPLOYMENT STATUS REPORT ==="
-        echo "🔹 Project: $PROJECT_ID"
-        echo "🔹 Cluster: $GKE_CLUSTER"
-        echo "🔹 Region: $REGION"
-        echo ""
-        echo "🔸 Docker: ✅ Image built successfully"
-        echo "🔸 GCR Push: ⚠️  Requires billing activation"
-        echo "🔸 Terraform: ⚠️  Requires API enablement"
-        echo "🔸 GKE Cluster: ⚠️  Requires APIs and billing"
-        echo ""
-        echo "🎯 NEXT STEPS:"
-        echo "1. Enable billing for project: $PROJECT_ID"
-        echo "2. Enable required APIs in GCP Console"
-        echo "3. Re-run this workflow"
-        echo ""
-        echo "🔗 API Enablement Links:"
-        echo "- Cloud Resource Manager: https://console.cloud.google.com/apis/api/cloudresourcemanager.googleapis.com/overview?project=$PROJECT_ID"
-        echo "- Kubernetes Engine: https://console.cloud.google.com/apis/api/container.googleapis.com/overview?project=$PROJECT_ID"
-        echo "- Container Registry: https://console.cloud.google.com/apis/api/containerregistry.googleapis.com/overview?project=$PROJECT_ID"
-        echo "================================"
-
-    - name: Create Deployment Documentation
+        kubectl set image deployment/aifa-backend aifa-backend=$IMAGE_NAME:$GITHUB_SHA
+        kubectl rollout status deployment/aifa-backend
+        
+    - name: Verify deployment
       run: |
-        echo "# GCP Deployment Status" > DEPLOYMENT_STATUS.md
-        echo "## Project: $PROJECT_ID" >> DEPLOYMENT_STATUS.md
-        echo "## Current Status: ⚠️ AWAITING CONFIGURATION" >> DEPLOYMENT_STATUS.md
-        echo "" >> DEPLOYMENT_STATUS.md
-        echo "### Completed Steps:" >> DEPLOYMENT_STATUS.md
-        echo "- ✅ Docker image built" >> DEPLOYMENT_STATUS.md
-        echo "- ✅ Terraform configuration ready" >> DEPLOYMENT_STATUS.md
-        echo "- ✅ Kubernetes manifests ready" >> DEPLOYMENT_STATUS.md
-        echo "- ✅ CI/CD pipeline operational" >> DEPLOYMENT_STATUS.md
-        echo "" >> DEPLOYMENT_STATUS.md
-        echo "### Required GCP Setup:" >> DEPLOYMENT_STATUS.md
-        echo "1. **Enable Billing** for project" >> DEPLOYMENT_STATUS.md
-        echo "2. **Enable APIs**: Cloud Resource Manager, Kubernetes Engine, Container Registry" >> DEPLOYMENT_STATUS.md
-        echo "3. **Re-run workflow** after configuration" >> DEPLOYMENT_STATUS.md
-        echo "" >> DEPLOYMENT_STATUS.md
-        echo "### All DevOps practices implemented and ready for deployment!" >> DEPLOYMENT_STATUS.md
+        kubectl get deployments
+        kubectl get pods
+        kubectl get services

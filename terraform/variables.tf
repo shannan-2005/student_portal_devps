@@ -1,23 +1,17 @@
-variable "project_id" {
-  description = "The GCP project ID"
+variable "gcp_project_id" {
+  description = "GCP Project ID"
   type        = string
-  default     = "future-grove-439612-s8"
+  default     = "alfa-vox-portfolio"  # Set your default project ID
 }
 
 variable "region" {
-  description = "The GCP region"
+  description = "GCP region"
   type        = string
   default     = "us-central1"
 }
 
 variable "cluster_name" {
-  description = "The name of the GKE cluster"
+  description = "GKE cluster name"
   type        = string
-  default     = "student-devops-cluster"
-}
-
-variable "node_count" {
-  description = "Number of nodes in the cluster"
-  type        = number
-  default     = 1
+  default     = "student_portal"
 }
