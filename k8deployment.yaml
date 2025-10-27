@@ -16,7 +16,7 @@ spec:
       - name: student-backend
         image: shannan06/student-backend:latest
         ports:
-        - containerPort: 80
+        - containerPort: 5000  # Change from 80 to 5000
         resources:
           requests:
             memory: "512Mi"
@@ -32,4 +32,4 @@ spec:
     app: student-backend
   ports:
   - port: 80
-    targetPort: 80
+    targetPort: 5000  # Change from 80 to 5000
