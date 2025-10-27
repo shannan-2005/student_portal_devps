@@ -1,6 +1,7 @@
 variable "project_id" {
   description = "The GCP project ID"
   type        = string
+  default     = "future-grove-439612-s8"
 }
 
 variable "region" {
@@ -12,7 +13,7 @@ variable "region" {
 variable "cluster_name" {
   description = "The name of the GKE cluster"
   type        = string
-  default     = "devops-project"
+  default     = "student-devops-cluster"
 }
 
 variable "node_count" {

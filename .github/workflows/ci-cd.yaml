@@ -1,100 +1,112 @@
-name: DevOps CI/CD Pipeline
+name: GCP Production Deployment
 
 on:
   push:
     branches: [ main ]
 
+env:
+  PROJECT_ID: "future-grove-439612-s8"
+  GKE_CLUSTER: "student-devops-cluster"
+  REGION: "us-central1"
+
 jobs:
-  devops-pipeline:
+  deploy-to-production:
     runs-on: ubuntu-latest
+    environment: production
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Verify file structure
-      run: |
-        echo "📁 Project structure:"
-        ls -la
-        echo "📁 Kubernetes folder:"
-        ls -la kubernetes/
-        echo "📁 Terraform folder:"
-        ls -la terraform/
+    - name: Setup Google Cloud
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    - name: Phase 1 - Version Control
-      run: |
-        echo "✅ Phase 1: Version Control with Git/GitHub"
-        echo "📊 Marks: 8/8"
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Phase 2 - Containerization
+    - name: Verify billing and services
       run: |
-        docker build -t student-web-app:$GITHUB_SHA .
+        echo "🔍 Checking project status..."
+        gcloud projects describe $PROJECT_ID
+        echo "✅ Project is active"
+        
+        echo "🔍 Checking billing..."
+        gcloud billing projects describe $PROJECT_ID || echo "⚠️  Billing check failed - continuing deployment"
+
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker gcr.io --quiet
+
+    - name: Build Docker image
+      run: |
+        echo "🐳 Building Docker image..."
+        docker build -t gcr.io/$PROJECT_ID/web-app:$GITHUB_SHA .
+        docker tag gcr.io/$PROJECT_ID/web-app:$GITHUB_SHA gcr.io/$PROJECT_ID/web-app:latest
         docker images
-        echo "✅ Phase 2: Containerization with Docker"
-        echo "📊 Marks: 8/8"
+
+    - name: Push Docker image to GCR
+      run: |
+        echo "📤 Pushing to Container Registry..."
+        docker push gcr.io/$PROJECT_ID/web-app:$GITHUB_SHA
+        docker push gcr.io/$PROJECT_ID/web-app:latest
+        echo "✅ Images pushed successfully"
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
-    - name: Phase 3 - Infrastructure as Code
+    - name: Create Infrastructure with Terraform
       run: |
+        echo "🏗️  Creating GKE cluster with Terraform..."
         cd terraform
         terraform init
-        terraform validate
-        echo "✅ Phase 3: Infrastructure as Code with Terraform"
-        echo "📊 Marks: 7/7"
+        terraform plan -var="project_id=$PROJECT_ID"
+        terraform apply -auto-approve -var="project_id=$PROJECT_ID"
+        echo "✅ Infrastructure created successfully"
 
-    - name: Phase 4 - Configuration Management
+    - name: Configure kubectl
       run: |
-        # Validate Kubernetes YAML files using Python (no kubectl needed)
-        python3 -c "
-        import yaml
-        try:
-            with open('kubernetes/deployment.yaml', 'r') as f:
-                deployment = yaml.safe_load(f)
-                print('✅ deployment.yaml - Valid YAML structure')
-                print(f'  Deployment: {deployment[\"metadata\"][\"name\"]}')
-                print(f'  Replicas: {deployment[\"spec\"][\"replicas\"]}')
-                
-            with open('kubernetes/service.yaml', 'r') as f:
-                service = yaml.safe_load(f)
-                print('✅ service.yaml - Valid YAML structure')
-                print(f'  Service: {service[\"metadata\"][\"name\"]}')
-                print(f'  Type: {service[\"spec\"][\"type\"]}')
-                
-            print('✅ All Kubernetes manifests validated successfully')
-        except Exception as e:
-            print(f'❌ Validation error: {e}')
-            exit(1)
-        "
-        echo "✅ Phase 4: Configuration Management with Kubernetes"
-        echo "📊 Marks: 7/7"
+        echo "🔧 Configuring Kubernetes access..."
+        gcloud container clusters get-credentials $GKE_CLUSTER --region $REGION
+        kubectl cluster-info
+        echo "✅ Kubernetes access configured"
 
-    - name: Phase 5 - CI/CD Pipeline
+    - name: Deploy Application
       run: |
-        echo "✅ Phase 5: CI/CD Pipeline Implementation"
-        echo "📊 Marks: 7/7"
-        echo "🚀 All DevOps phases completed successfully!"
+        echo "🎯 Deploying application to GKE..."
+        kubectl apply -f kubernetes/deployment.yaml
+        kubectl apply -f kubernetes/service.yaml
+        
+        echo "⏳ Waiting for deployment to complete..."
+        kubectl rollout status deployment/web-app --timeout=300s
+        echo "✅ Application deployed successfully"
 
-    - name: Generate documentation
+    - name: Get Application URL
       run: |
-        echo "# DevOps Project Documentation" > DOCUMENTATION.md
-        echo "## Project: Automated Web Application Deployment" >> DOCUMENTATION.md
-        echo "### Implementation Status: ✅ COMPLETED" >> DOCUMENTATION.md
-        echo "" >> DOCUMENTATION.md
-        echo "### Marks Breakdown:" >> DOCUMENTATION.md
-        echo "- ✅ Version Control (Git/GitHub): 8/8 marks" >> DOCUMENTATION.md
-        echo "- ✅ Containerization (Docker): 8/8 marks" >> DOCUMENTATION.md
-        echo "- ✅ Infrastructure as Code (Terraform): 7/7 marks" >> DOCUMENTATION.md
-        echo "- ✅ Configuration Management (Kubernetes): 7/7 marks" >> DOCUMENTATION.md
-        echo "- ✅ CI/CD Pipeline (GitHub Actions): 7/7 marks" >> DOCUMENTATION.md
-        echo "- ✅ Documentation: 10/10 marks" >> DOCUMENTATION.md
-        echo "" >> DOCUMENTATION.md
-        echo "### Total: 47/50 marks" >> DOCUMENTATION.md
-        echo "" >> DOCUMENTATION.md
-        echo "#### All DevOps practices successfully implemented:" >> DOCUMENTATION.md
-        echo "- Git version control and collaboration" >> DOCUMENTATION.md
-        echo "- Docker containerization" >> DOCUMENTATION.md
-        echo "- Terraform Infrastructure as Code" >> DOCUMENTATION.md
-        echo "- Kubernetes configuration management" >> DOCUMENTATION.md
-        echo "- GitHub Actions CI/CD pipeline" >> DOCUMENTATION.md
+        echo "🌐 Getting application information..."
+        kubectl get services --namespace=default
+        
+        echo ""
+        echo "🎉 DEPLOYMENT SUCCESSFUL!"
+        echo "📊 Project: $PROJECT_ID"
+        echo "🏷️  Cluster: $GKE_CLUSTER"
+        echo "📍 Region: $REGION"
+        echo "🐳 Image: gcr.io/$PROJECT_ID/web-app:latest"
+        echo ""
+        echo "🔗 Your application will be available at the EXTERNAL-IP shown above"
+        echo "⏰ It may take 2-5 minutes for the LoadBalancer to provision"
+
+    - name: Create Deployment Report
+      run: |
+        echo "# GCP Deployment Report" > DEPLOYMENT_REPORT.md
+        echo "## Project: $PROJECT_ID" >> DEPLOYMENT_REPORT.md
+        echo "## Status: ✅ DEPLOYED SUCCESSFULLY" >> DEPLOYMENT_REPORT.md
+        echo "### Deployment Details:" >> DEPLOYMENT_REPORT.md
+        echo "- GKE Cluster: $GKE_CLUSTER" >> DEPLOYMENT_REPORT.md
+        echo "- Region: $REGION" >> DEPLOYMENT_REPORT.md
+        echo "- Docker Image: gcr.io/$PROJECT_ID/web-app:latest" >> DEPLOYMENT_REPORT.md
+        echo "- Terraform: Infrastructure as Code" >> DEPLOYMENT_REPORT.md
+        echo "- Kubernetes: Container Orchestration" >> DEPLOYMENT_REPORT.md
+        echo "- CI/CD: GitHub Actions" >> DEPLOYMENT_REPORT.md
