@@ -8,10 +8,10 @@ on:
 
 env:
   DOCKER_REGISTRY: docker.io
-  IMAGE_NAME: shannan06/student_backend
+  IMAGE_NAME: shannan06/student-backend  # ✅ Changed from student_backend to student-backend
   GKE_CLUSTER: student-portal
-  GKE_LOCATION: us-central1-a   # ✅ exact zone from gcloud output
-  GCP_PROJECT: ku-gcp-hackathon  # ✅ added project ID
+  GKE_LOCATION: us-central1-a
+  GCP_PROJECT: ku-gcp-hackathon
 
 jobs:
   build-and-push:
@@ -57,12 +57,12 @@ jobs:
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_LOCATION }}
-        project_id: ${{ env.GCP_PROJECT }}   # ✅ added
+        project_id: ${{ env.GCP_PROJECT }}
 
     - name: Deploy to GKE
       run: |
-        kubectl set image deployment/student-portal student-portal=$IMAGE_NAME:$GITHUB_SHA
-        kubectl rollout status deployment/student-portal
+        kubectl set image deployment/student-backend student-backend=$IMAGE_NAME:$GITHUB_SHA  # ✅ Fixed deployment name
+        kubectl rollout status deployment/student-backend  # ✅ Fixed deployment name
         
     - name: Verify deployment
       run: |
