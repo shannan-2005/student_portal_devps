@@ -8,8 +8,8 @@ on:
 
 env:
   DOCKER_REGISTRY: docker.io
-  IMAGE_NAME: godwin1605/aifa-backend
-  GKE_CLUSTER: alfavox-cluster
+  IMAGE_NAME: shannan06/student_backend
+  GKE_CLUSTER: student_portal
   GKE_ZONE: us-central1-a
 
 jobs:
@@ -59,8 +59,8 @@ jobs:
         
     - name: Deploy to GKE
       run: |
-        kubectl set image deployment/aifa-backend aifa-backend=$IMAGE_NAME:$GITHUB_SHA
-        kubectl rollout status deployment/aifa-backend
+        kubectl set image deployment/student-portal student-portal=$IMAGE_NAME:$GITHUB_SHA
+        kubectl rollout status deployment/student-portal
         
     - name: Verify deployment
       run: |
