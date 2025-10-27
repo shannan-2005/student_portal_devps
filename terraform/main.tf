@@ -15,7 +15,7 @@ provider "google" {
 
 # GKE Cluster with e2-standard-4 nodes
 resource "google_container_cluster" "alfavox_cluster" {
-  name               = "student_portal"
+  name               = "student-portal"
   location           = "us-central1-a"  # Single zone for cost efficiency
   initial_node_count = 1                # Start with 1 node
   

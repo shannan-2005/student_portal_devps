@@ -1,7 +1,7 @@
 variable "gcp_project_id" {
   description = "GCP Project ID"
   type        = string
-  default     = "alfa-vox-portfolio"  # Set your default project ID
+  default     = "ku-gcp-hackathon"  # Set your default project ID
 }
 
 variable "region" {
@@ -13,5 +13,5 @@ variable "region" {
 variable "cluster_name" {
   description = "GKE cluster name"
   type        = string
-  default     = "student_portal"
+  default     = "student-portal"
 }
