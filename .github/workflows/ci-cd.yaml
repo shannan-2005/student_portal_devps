@@ -10,7 +10,8 @@ env:
   DOCKER_REGISTRY: docker.io
   IMAGE_NAME: shannan06/student_backend
   GKE_CLUSTER: student-portal
-  GKE_ZONE: us-central1-a
+  GKE_LOCATION: us-central1-a   # ✅ exact zone from gcloud output
+  GCP_PROJECT: ku-gcp-hackathon  # ✅ added project ID
 
 jobs:
   build-and-push:
@@ -28,7 +29,7 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t $IMAGE_NAME:$GITHUB_SHA .
-        docker build -t $IMAGE_NAME:latest .
+        docker tag $IMAGE_NAME:$GITHUB_SHA $IMAGE_NAME:latest
         
     - name: Push Docker image
       run: |
@@ -55,8 +56,9 @@ jobs:
       uses: google-github-actions/get-gke-credentials@v1
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
-        
+        location: ${{ env.GKE_LOCATION }}
+        project_id: ${{ env.GCP_PROJECT }}   # ✅ added
+
     - name: Deploy to GKE
       run: |
         kubectl set image deployment/student-portal student-portal=$IMAGE_NAME:$GITHUB_SHA
