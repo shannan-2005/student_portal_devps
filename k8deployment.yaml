@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: student-portal
+  name: student-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: student-portal
+      app: student-backend
   template:
     metadata:
       labels:
-        app: student-portal
+        app: student-backend
     spec:
       containers:
-      - name: student-portal
-        image: shannan06/student-portal:latest
+      - name: student-backend
+        image: shannan06/student-backend:latest
         ports:
         - containerPort: 80
         resources:
@@ -25,11 +25,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: student-portal-service
+  name: student-backend-service
 spec:
   type: LoadBalancer
   selector:
-    app: student-portal
+    app: student-backend
   ports:
   - port: 80
     targetPort: 80
