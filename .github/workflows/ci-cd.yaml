@@ -9,7 +9,7 @@ on:
 env:
   DOCKER_REGISTRY: docker.io
   IMAGE_NAME: shannan06/student_backend
-  GKE_CLUSTER: student_portal
+  GKE_CLUSTER: student-portal
   GKE_ZONE: us-central1-a
 
 jobs:
